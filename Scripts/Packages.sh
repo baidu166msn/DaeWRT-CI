@@ -144,6 +144,7 @@ cp -r $GITHUB_WORKSPACE/package/v2ray-geodata ./
 if [[ "${USE_QIUSIMONS_DAE_MAKEFILE,,}" == "true" ]]; then
 	git clone --depth=1 --single-branch --branch kix "https://github.com/QiuSimons/luci-app-dae.git" luci-app-dae-QiuSimons
 	rm -rf luci-app-dae/dae/Makefile && cp -r luci-app-dae-QiuSimons/dae/Makefile luci-app-dae/dae/
+	rm -rf luci-app-dae-QiuSimons
 	cat luci-app-dae/dae/Makefile
 fi
 
