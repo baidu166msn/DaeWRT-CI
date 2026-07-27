@@ -85,8 +85,8 @@ CONFIG_PACKAGE_v2ray-geodata-updater=y
 # ==============================================================================
 # 5. HomeProxy 服务器端
 # ==============================================================================
-CONFIG_PACKAGE_luci-app-homeproxy=y
-CONFIG_PACKAGE_homeproxy=y
+CONFIG_PACKAGE_luci-app-homeproxy=n
+CONFIG_PACKAGE_homeproxy=n
 CONFIG_PACKAGE_sing-box=y
 
 # 可选：Xray 内核
