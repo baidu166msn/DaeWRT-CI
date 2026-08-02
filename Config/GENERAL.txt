@@ -4,7 +4,10 @@
 # 本配置目标：
 # - 京东云雅典娜 IPQ60xx
 # - 修复 / 补全 WiFi：2.4G、5.2G、5.8G
-# - 保留 NSS、Daed、HomeProxy、Samba、USB、eMMC、IPv6、UPnP、ZeroTier 等常用功能
+# - 保留 NSS、Daed、Samba、USB、eMMC、IPv6、UPnP、ZeroTier 等常用功能
+# - 【已修复】禁用 kmod-nft-fullcone（与 NSS + DAED eBPF 双重冲突）
+# - 【已修复】添加防冲突补丁（wpad/dnsmasq/firewall）
+# - 【已修复】HomeProxy 已禁用（DAED 主力）
 #
 # 使用建议：
 # 1) 将本文件内容替换你的 GENERAL.txt
@@ -13,6 +16,21 @@
 #      grep -Ei 'ath11k|ipq-wifi|qrtr|mhi|pcie-qcom|wpad|hostapd' .config
 # 3) 确认关键项不是 "is not set"
 # ==============================================================================
+
+# ==============================================================================
+# 【核心防冲突补丁】(必须放在最顶部)
+# ==============================================================================
+# 剔除精简版 LuCI
+# CONFIG_PACKAGE_luci-light is not set
+# 剔除基础版 wpad 和 dnsmasq，防止与 DAED 需要的 full 版冲突
+# CONFIG_PACKAGE_wpad-basic-mbedtls is not set
+# CONFIG_PACKAGE_wpad-basic-wolfssl is not set
+# CONFIG_PACKAGE_wpad-basic is not set
+# CONFIG_PACKAGE_dnsmasq is not set
+# 剔除旧版防火墙引擎
+# CONFIG_PACKAGE_firewall is not set
+# 【关键】禁用软件 fullcone（与 NSS 硬件加速 + DAED eBPF 双重冲突）
+# CONFIG_PACKAGE_kmod-nft-fullcone is not set
 
 # ==============================================================================
 # 1. 硬件目标平台设置 / 京东云雅典娜 IPQ60xx
@@ -60,16 +78,6 @@ CONFIG_PACKAGE_luci-app-athena-led=y
 CONFIG_PACKAGE_luci-i18n-base-zh-cn=y
 CONFIG_PACKAGE_default-settings-chn=y
 
-# 可选：其他中文语言包
-# CONFIG_PACKAGE_luci-i18n-firewall-zh-cn=y
-# CONFIG_PACKAGE_luci-i18n-opkg-zh-cn=y
-# CONFIG_PACKAGE_luci-i18n-fstab-zh-cn=y
-# CONFIG_PACKAGE_luci-i18n-ttyd-zh-cn=y
-# CONFIG_PACKAGE_luci-i18n-cpufreq-zh-cn=y
-# CONFIG_PACKAGE_luci-i18n-upnp-zh-cn=y
-# CONFIG_PACKAGE_luci-i18n-samba4-zh-cn=y
-# CONFIG_PACKAGE_luci-i18n-zerotier-zh-cn=y
-
 # ==============================================================================
 # 4. Daed 主力透明代理
 # ==============================================================================
@@ -83,14 +91,11 @@ CONFIG_PACKAGE_v2ray-geosite=y
 CONFIG_PACKAGE_v2ray-geodata-updater=y
 
 # ==============================================================================
-# 5. HomeProxy 服务器端
+# 5. HomeProxy（已禁用，DAED 主力）
 # ==============================================================================
-CONFIG_PACKAGE_luci-app-homeproxy=n
-CONFIG_PACKAGE_homeproxy=n
+# CONFIG_PACKAGE_luci-app-homeproxy is not set
+# CONFIG_PACKAGE_homeproxy is not set
 CONFIG_PACKAGE_sing-box=y
-
-# 可选：Xray 内核
-# CONFIG_PACKAGE_xray-core=n
 
 # ==============================================================================
 # 6. NSS 硬件加速（雅典娜核心）
@@ -103,12 +108,8 @@ CONFIG_PACKAGE_kmod-qca-nss-drv-pppoe=y
 CONFIG_PACKAGE_kmod-qca-nss-drv-qdisc=y
 CONFIG_PACKAGE_kmod-qca-nss-drv-map-t=y
 CONFIG_PACKAGE_kmod-qca-nss-crypto=y
-
-# 建议补充：部分 ECM / NSS 功能常见依赖
 CONFIG_PACKAGE_kmod-qca-nss-drv-igs=y
 CONFIG_PACKAGE_kmod-qca-nss-drv-netlink=y
-
-# 可选：WiFi mesh / offload 相关（如源码提供，可保留）
 CONFIG_PACKAGE_kmod-qca-nss-drv-wifi-meshmgr=y
 
 # ==============================================================================
@@ -125,7 +126,8 @@ CONFIG_PACKAGE_kmod-nf-flow=y
 CONFIG_PACKAGE_kmod-nft-core=y
 CONFIG_PACKAGE_kmod-nft-nat=y
 CONFIG_PACKAGE_kmod-nft-offload=y
-CONFIG_PACKAGE_kmod-nft-fullcone=n
+# 【关键】禁用软件 fullcone（标准写法）
+# CONFIG_PACKAGE_kmod-nft-fullcone is not set
 CONFIG_PACKAGE_kmod-nft-socket=y
 CONFIG_PACKAGE_kmod-nft-fib=y
 CONFIG_PACKAGE_kmod-nft-tproxy=y
@@ -177,11 +179,7 @@ CONFIG_PACKAGE_tcpdump=y
 CONFIG_PACKAGE_ethtool=y
 CONFIG_PACKAGE_conntrack=y
 CONFIG_PACKAGE_ss=y
-
-# 强烈建议补充：排查 PCIe / 5G 无线芯片识别
 CONFIG_PACKAGE_pciutils=y
-
-# 可选：USB 诊断
 CONFIG_PACKAGE_usbutils=y
 
 # ==============================================================================
@@ -199,8 +197,6 @@ CONFIG_PACKAGE_kmod-usb-dwc3=y
 CONFIG_PACKAGE_kmod-usb-storage=y
 CONFIG_PACKAGE_kmod-usb-storage-extras=y
 CONFIG_PACKAGE_kmod-usb-storage-uas=y
-
-# 可选补强：Qualcomm USB glue（如源码提供，建议保留）
 CONFIG_PACKAGE_kmod-usb-dwc3-qcom=y
 CONFIG_PACKAGE_kmod-usb-phy-qcom-dwc3=y
 
@@ -228,15 +224,11 @@ CONFIG_PACKAGE_kmod-fs-ntfs3=y
 CONFIG_PACKAGE_kmod-fs-exfat=y
 CONFIG_PACKAGE_exfat-fsck=y
 CONFIG_PACKAGE_kmod-fs-vfat=y
-
-# 中文与基础编码支持
 CONFIG_PACKAGE_kmod-nls-base=y
 CONFIG_PACKAGE_kmod-nls-cp437=y
 CONFIG_PACKAGE_kmod-nls-iso8859-1=y
 CONFIG_PACKAGE_kmod-nls-utf8=y
 CONFIG_PACKAGE_kmod-nls-cp936=y
-
-# 可选补充：FAT 格式化工具
 CONFIG_PACKAGE_dosfstools=y
 
 # ==============================================================================
@@ -253,8 +245,6 @@ CONFIG_PACKAGE_ca-bundle=y
 CONFIG_PACKAGE_openssl-util=y
 CONFIG_PACKAGE_unzip=y
 CONFIG_PACKAGE_zstd=y
-
-# 建议补充：OpenSSL 运行库与 uhttpd SSL 依赖
 CONFIG_PACKAGE_libopenssl=y
 CONFIG_PACKAGE_libopenssl-conf=y
 CONFIG_PACKAGE_libustream-openssl=y
@@ -275,10 +265,7 @@ CONFIG_PACKAGE_coremark=y
 # ==============================================================================
 # 19. 平台 / 无线 / WiFi 修复核心
 # ==============================================================================
-
-# ------------------------------------------------------------------------------
 # 19.1 无线用户空间基础
-# ------------------------------------------------------------------------------
 CONFIG_PACKAGE_wireless-regdb=y
 CONFIG_PACKAGE_iw=y
 CONFIG_PACKAGE_iwinfo=y
@@ -287,17 +274,8 @@ CONFIG_PACKAGE_libiwinfo-lua=y
 CONFIG_PACKAGE_hostapd-common=y
 CONFIG_PACKAGE_hostapd-utils=y
 
-# ------------------------------------------------------------------------------
 # 19.2 hostapd / wpad
-# ------------------------------------------------------------------------------
-# 建议只保留一个完整版 wpad，避免多个 wpad 冲突
 CONFIG_PACKAGE_wpad-openssl=y
-
-# 如果你源码里没有 wpad-openssl，可改用下面其中一个：
-# CONFIG_PACKAGE_wpad-wolfssl=y
-# CONFIG_PACKAGE_wpad-mbedtls=y
-
-# 明确关闭常见基础版 / 精简版，避免冲突
 # CONFIG_PACKAGE_wpad-basic-mbedtls is not set
 # CONFIG_PACKAGE_wpad-basic-wolfssl is not set
 # CONFIG_PACKAGE_wpad-mbedtls is not set
@@ -305,59 +283,36 @@ CONFIG_PACKAGE_wpad-openssl=y
 # CONFIG_PACKAGE_wpad-mini is not set
 # CONFIG_PACKAGE_wpad is not set
 
-# ------------------------------------------------------------------------------
 # 19.3 mac80211 / ath / ath11k 主驱动
-# ------------------------------------------------------------------------------
 CONFIG_PACKAGE_kmod-cfg80211=y
 CONFIG_PACKAGE_kmod-mac80211=y
 CONFIG_PACKAGE_kmod-ath=y
 CONFIG_PACKAGE_kmod-ath11k=y
-
-# 关键：SoC 内部无线 / AHB 总线
 CONFIG_PACKAGE_kmod-ath11k-ahb=y
-
-# 关键：5G 外挂无线芯片常见走 PCIe
 CONFIG_PACKAGE_kmod-ath11k-pci=y
 
-# ------------------------------------------------------------------------------
 # 19.4 Qualcomm PCIe / QRTR / MHI / 平台通信依赖
-# ------------------------------------------------------------------------------
-# 这些是 5G PCIe 无线芯片非常容易缺的底层依赖
 CONFIG_PACKAGE_kmod-pcie-qcom=y
 CONFIG_PACKAGE_kmod-mhi-bus=y
 CONFIG_PACKAGE_kmod-mhi-pci=y
 CONFIG_PACKAGE_kmod-qrtr=y
 CONFIG_PACKAGE_kmod-qrtr-mhi=y
 CONFIG_PACKAGE_kmod-qrtr-smd=y
-
-# Qualcomm 平台通信相关（如源码提供，建议保留）
 CONFIG_PACKAGE_kmod-qcom-smd=y
 CONFIG_PACKAGE_kmod-qcom-glink=y
 CONFIG_PACKAGE_kmod-qcom-smem=y
-
-# 远程处理器 / RPMSG / WCSS（如源码提供，建议保留）
 CONFIG_PACKAGE_kmod-remoteproc=y
 CONFIG_PACKAGE_kmod-rpmsg=y
 CONFIG_PACKAGE_kmod-qcom-q6v5-wcss=y
 
-# ------------------------------------------------------------------------------
 # 19.5 ath11k 固件 / 板级数据 / 校准数据
-# ------------------------------------------------------------------------------
-# 不同源码包名可能不同，下面尽量覆盖常见命名
 CONFIG_PACKAGE_ath11k-firmware-ipq60xx=y
 CONFIG_PACKAGE_ath11k-firmware-ipq6010=y
 CONFIG_PACKAGE_ath11k-firmware-qcn5052=y
 CONFIG_PACKAGE_ath11k-firmware-qcn5054=y
-
-# 京东云雅典娜设备专用 BDF / caldata（包名可能略有差异）
 CONFIG_PACKAGE_ipq-wifi-jdcloud_athena=y
 
-# 如果你的源码里设备包名不是上面这个，可尝试类似：
-# CONFIG_PACKAGE_ipq-wifi-jdcloud-athena=y
-
-# ------------------------------------------------------------------------------
 # 19.6 WiFi 常用加密 / 随机数 / 基础算法依赖
-# ------------------------------------------------------------------------------
 CONFIG_PACKAGE_kmod-random-core=y
 CONFIG_PACKAGE_kmod-crypto-aead=y
 CONFIG_PACKAGE_kmod-crypto-arc4=y
@@ -375,8 +330,6 @@ CONFIG_PACKAGE_kmod-crypto-rng=y
 CONFIG_PACKAGE_kmod-crypto-seqiv=y
 CONFIG_PACKAGE_kmod-crypto-sha256=y
 CONFIG_PACKAGE_kmod-crypto-sha512=y
-
-# 可选补充：WPA3 / 802.11w / 现代加密更稳
 CONFIG_PACKAGE_kmod-crypto-ecdh=y
 CONFIG_PACKAGE_kmod-crypto-kpp=y
 CONFIG_PACKAGE_kmod-crypto-chacha20poly1305=y
@@ -396,8 +349,10 @@ CONFIG_PACKAGE_kmod-crypto-lib-poly1305=y
 #   CONFIG_PACKAGE_kmod-ath11k=y
 #   CONFIG_PACKAGE_kmod-ath11k-ahb=y
 #   CONFIG_PACKAGE_kmod-ath11k-pci=y
-#   CONFIG_PACKAGE_ath11k-firmware-ipq60xx=y 或 ipq6010=y
-#   CONFIG_PACKAGE_ath11k-firmware-qcn5052=y
-#   CONFIG_PACKAGE_ath11k-firmware-qcn5054=y
+#   CONFIG_PACKAGE_ath11k-firmware-ipq60xx=y
 #   CONFIG_PACKAGE_ipq-wifi-jdcloud_athena=y
 #   CONFIG_PACKAGE_wpad-openssl=y
+#
+# 重点确认这些为 not set：
+#   # CONFIG_PACKAGE_kmod-nft-fullcone is not set
+#   # CONFIG_PACKAGE_luci-app-homeproxy is not set
