@@ -122,4 +122,44 @@ cat > $GITHUB_WORKSPACE/package/base-files/files/etc/hotplug.d/iface/99-daed-sta
 	/etc/init.d/daed start
 }
 EOF
-chmod +x $GITHUB_WORKSPACE/package/base-files/files/etc/h
+chmod +x $GITHUB_WORKSPACE/package/base-files/files/etc/hotplug.d/iface/99-daed-start
+
+# ==========================================
+# .config 追加 (与 GENERAL.txt 保持一致)
+# ==========================================
+cat >> ../.config <<'CONFIGEOF'
+
+# --- 防冲突补丁 ---
+# CONFIG_PACKAGE_luci-light is not set
+# CONFIG_PACKAGE_wpad-basic-mbedtls is not set
+# CONFIG_PACKAGE_wpad-basic-wolfssl is not set
+# CONFIG_PACKAGE_wpad-basic is not set
+# CONFIG_PACKAGE_dnsmasq is not set
+# CONFIG_PACKAGE_firewall is not set
+# CONFIG_PACKAGE_kmod-nft-fullcone is not set
+
+# --- DAED 主力透明代理 ---
+CONFIG_PACKAGE_luci-app-daed=y
+CONFIG_PACKAGE_daed=y
+CONFIG_PACKAGE_daed-next=y
+
+# --- sing-box 服务器端 / HomeProxy 禁用 ---
+CONFIG_PACKAGE_sing-box=y
+# CONFIG_PACKAGE_luci-app-homeproxy is not set
+
+# --- 常用插件 ---
+CONFIG_PACKAGE_luci-app-upnp=y
+CONFIG_PACKAGE_luci-app-samba4=y
+CONFIG_PACKAGE_luci-app-zerotier=y
+CONFIG_PACKAGE_zerotier=y
+CONFIG_PACKAGE_luci-app-partexp=y
+CONFIG_PACKAGE_luci-app-diskman=y
+CONFIG_PACKAGE_luci-app-ttyd=y
+CONFIG_PACKAGE_luci-app-cpufreq=y
+
+# --- 主题与语言 ---
+CONFIG_PACKAGE_luci-theme-argon=y
+CONFIG_PACKAGE_luci-app-argon-config=y
+CONFIG_LUCI_LANG_zh_Hans=y
+CONFIG_PACKAGE_default-settings-chn=y
+CONFIGEOF
