@@ -1,45 +1,25 @@
 #!/bin/bash
 # ==========================================
-# 【局部修补】保持全局最新，只把炸掉的 gettext-full 回退到 08.02 稳定版
-# 【修复】路径改为 ../package（当前目录是 wrt/package）
-# 【修复】先 fetch 历史 commit（解决浅克隆）
-# 【修复】清理旧编译缓存 + 验证 + 兜底
+# 【局部修补 v2】gettext-full 用 OpenWrt 官方 CI 验证过的版本覆盖
+# （上游 1.0 与回退 0.24.2 在新环境都编译失败，直接换官方当前版）
+# 注意：本脚本运行时当前目录是 wrt/package，所有路径用 ../
 # ==========================================
-echo ">>> 修复 gettext-full 编译报错 (局部回退到 0.24.2)..."
+echo ">>> 替换 gettext-full 为 OpenWrt 官方版本..."
+rm -rf /tmp/owrt-gettext
+git clone --depth=1 --filter=blob:none --sparse https://github.com/openwrt/openwrt.git /tmp/owrt-gettext
+git -C /tmp/owrt-gettext sparse-checkout set package/libs/gettext-full
 
-# 1. 抓取指定历史 commit（GitHub 支持按 SHA 抓取，解决浅克隆没有历史的问题）
-git fetch --depth=1 origin 83c5ae5 2>/dev/null || git fetch --unshallow origin 2>/dev/null || true
+rm -rf ../package/libs/gettext-full
+cp -r /tmp/owrt-gettext/package/libs/gettext-full ../package/libs/gettext-full
+rm -rf /tmp/owrt-gettext
 
-# 2. 回退 gettext-full 目录（注意是 ../package，不是 package！）
-git checkout 83c5ae5 -- ../package/libs/gettext-full \
-	&& echo ">>> git 回退命令执行成功" \
-	|| echo ">>> [错误] git 回退失败！"
+# 清理旧 gettext 编译缓存，防止复用被污染的构建目录
+rm -rf ../build_dir/hostpkg/gettext-* ../build_dir/hostpkg/libtextstyle-*
 
-# 3. 兜底：如果 git 回退没生效，直接下载旧版目录覆盖
-if grep -q "PKG_VERSION:=1.0" ../package/libs/gettext-full/Makefile; then
-	echo ">>> git 回退未生效，启用 tarball 兜底覆盖..."
-	rm -rf ../package/libs/gettext-full
-	curl -sL "https://codeload.github.com/VIKINGYFY/immortalwrt/tar.gz/83c5ae5" -o /tmp/owrt-old.tar.gz
-	tar -xzf /tmp/owrt-old.tar.gz -C /tmp
-	cp -r /tmp/immortalwrt-*/package/libs/gettext-full ../package/libs/gettext-full
-	rm -rf /tmp/owrt-old.tar.gz /tmp/immortalwrt-*
-fi
+grep "PKG_VERSION" ../package/libs/gettext-full/Makefile
+echo ">>> gettext-full 替换完成，其他源码保持最新！"
 
-# 4. 验证回退是否生效
-if grep -q "PKG_VERSION:=0.24" ../package/libs/gettext-full/Makefile; then
-	echo ">>> 验证通过：gettext-full 已回退到 0.24.x"
-else
-	echo ">>> [严重警告] 回退仍未生效！本次编译大概率还会失败"
-fi
-
-# 5. 清理旧编译缓存，防止 make 复用 gettext-1.0 的构建目录
-rm -rf ../build_dir/hostpkg/gettext-1.0 ../build_dir/hostpkg/gettext-full
-
-echo ">>> gettext-full 局部回退完成，其他源码保持最新！"
-
-# ==========================================
-# 安装和更新软件包函数
-# ==========================================
+#安装和更新软件包
 UPDATE_PACKAGE() {
 	local PKG_NAME=$1
 	local PKG_REPO=$2
@@ -73,12 +53,6 @@ UPDATE_PACKAGE() {
 }
 
 # ==========================================
-# 主题 (只保留 argon)
-# ==========================================
-# UPDATE_PACKAGE "aurora" "eamonxg/luci-theme-aurora" "master"
-# UPDATE_PACKAGE "kucat" "sirpdboy/luci-theme-kucat" "master"
-
-# ==========================================
 # 主力代理：DAED (透明代理)
 # ==========================================
 UPDATE_PACKAGE "luci-app-daed" "QiuSimons/luci-app-daed" "kix"
@@ -90,9 +64,9 @@ UPDATE_PACKAGE "partexp" "sirpdboy/luci-app-partexp" "main"
 UPDATE_PACKAGE "diskman" "lisaac/luci-app-diskman" "master"
 
 # ==========================================
-# 以下全部注释 (与使用场景无关 / 有冲突 / 体积过大)
+# 以下全部注释 (与场景无关 / 有冲突 / 体积过大)
 # ==========================================
-# UPDATE_PACKAGE "homeproxy" "VIKINGYFY/homeproxy" "main"    # 仓库失效，改用源码自带或 sbwml
+# UPDATE_PACKAGE "homeproxy" "VIKINGYFY/homeproxy" "main"    # 仓库失效 + GENERAL.txt 已禁用
 # UPDATE_PACKAGE "momo" "nikkinikki-org/OpenWrt-momo" "main"
 # UPDATE_PACKAGE "nikki" "nikkinikki-org/OpenWrt-nikki" "main"
 # UPDATE_PACKAGE "passwall" "Openwrt-Passwall/openwrt-passwall" "main" "pkg"
@@ -112,7 +86,8 @@ UPDATE_PACKAGE "diskman" "lisaac/luci-app-diskman" "master"
 
 # ==========================================
 # 删除官方冲突的默认插件
-# 【重要】不要删除 dae*，DAED 主力需要！
+# 【重要】不删 dae*（DAED 主力需要）
+# 【重要】不删 v2ray-geodata/geoip/geosite（DAED 需要）
 # ==========================================
 rm -rf ../feeds/luci/applications/luci-app-{passwall*,mosdns,dockerman,bypass*}
 cp -r $GITHUB_WORKSPACE/package/* ./ 2>/dev/null || true
@@ -130,63 +105,21 @@ if [ -f "luci-app-daed/luci-app-daed/root/etc/init.d/luci_daed" ]; then
 fi
 
 # ==========================================
-# 【关键】创建 DAED 启动时序 hotplug 脚本
-# 解决"重启后 eBPF 先加载、代理隧道没就绪、DNS 全断"的问题
-# 【修复】去掉了 local 关键字，防止顶层执行报错
+# 【关键】DAED 启动时序 hotplug 脚本
+# 解决"重启后 eBPF 先加载、隧道没就绪、DNS 全断"
+# 【修复】已去掉 local 关键字（hotplug 顶层执行用 local 会报错退出）
 # ==========================================
 mkdir -p $GITHUB_WORKSPACE/package/base-files/files/etc/hotplug.d/iface
 cat > $GITHUB_WORKSPACE/package/base-files/files/etc/hotplug.d/iface/99-daed-start <<'EOF'
 [ "$ACTION" = "ifup" ] && [ "$INTERFACE" = "wan" ] && {
-    sleep 10
-    wait=0
-    while [ $wait -lt 30 ]; do
-        nslookup baidu.com 223.5.5.5 >/dev/null 2>&1 && break
-        sleep 2
-        wait=$((wait + 2))
-    done
-    /etc/init.d/daed start
+	sleep 10
+	wait=0
+	while [ $wait -lt 30 ]; do
+		nslookup baidu.com 223.5.5.5 >/dev/null 2>&1 && break
+		sleep 2
+		wait=$((wait + 2))
+	done
+	/etc/init.d/daed start
 }
 EOF
-chmod +x $GITHUB_WORKSPACE/package/base-files/files/etc/hotplug.d/iface/99-daed-start
-
-# ==========================================
-# .config 追加 (DAED + sing-box + 常用插件 + 防冲突)
-# ==========================================
-cat >> ../.config <<'CONFIGEOF'
-
-# --- 防冲突补丁 ---
-# CONFIG_PACKAGE_luci-light is not set
-# CONFIG_PACKAGE_wpad-basic-mbedtls is not set
-# CONFIG_PACKAGE_wpad-basic-wolfssl is not set
-# CONFIG_PACKAGE_wpad-basic is not set
-# CONFIG_PACKAGE_dnsmasq is not set
-# CONFIG_PACKAGE_firewall is not set
-# CONFIG_PACKAGE_kmod-nft-fullcone is not set
-
-# --- DAED 主力透明代理 ---
-CONFIG_PACKAGE_luci-app-daed=y
-CONFIG_PACKAGE_daed=y
-CONFIG_PACKAGE_daed-next=y
-
-# --- HomeProxy 服务器端 (保留 sing-box) ---
-CONFIG_PACKAGE_sing-box=y
-CONFIG_PACKAGE_luci-app-homeproxy=n
-CONFIG_PACKAGE_v2ray-geodata=y
-CONFIG_PACKAGE_v2ray-geosite=y
-
-# --- 常用插件 ---
-CONFIG_PACKAGE_luci-app-upnp=y
-CONFIG_PACKAGE_luci-app-samba4=y
-CONFIG_PACKAGE_luci-app-zerotier=y
-CONFIG_PACKAGE_zerotier=y
-CONFIG_PACKAGE_luci-app-partexp=y
-CONFIG_PACKAGE_luci-app-diskman=n
-CONFIG_PACKAGE_luci-app-ttyd=y
-CONFIG_PACKAGE_luci-app-cpufreq=y
-
-# --- 主题与语言 ---
-CONFIG_PACKAGE_luci-theme-argon=y
-CONFIG_PACKAGE_luci-app-argon-config=y
-CONFIG_LUCI_LANG_zh_Hans=y
-CONFIG_PACKAGE_default-settings-chn=y
-CONFIGEOF
+chmod +x $GITHUB_WORKSPACE/package/base-files/files/etc/h
