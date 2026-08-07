@@ -1,28 +1,4 @@
 #!/bin/bash
-# ==========================================
-# 【局部修补 v3】彻底解决 gettext-full 编译失败
-# 1) 整体换成 OpenWrt 官方 CI 正在成功编译的 gettext-full（含 C23 修复）
-# 2) 强删脏构建目录 + 旧下载缓存，消灭"混合源码"污染
-# ==========================================
-echo ">>> 替换 gettext-full 为 OpenWrt 官方版本并清理全部缓存..."
-
-rm -rf /tmp/owrt-gettext
-git clone --depth=1 --filter=blob:none --sparse https://github.com/openwrt/openwrt.git /tmp/owrt-gettext
-git -C /tmp/owrt-gettext sparse-checkout set package/libs/gettext-full
-
-rm -rf ../package/libs/gettext-full
-cp -r /tmp/owrt-gettext/package/libs/gettext-full ../package/libs/gettext-full
-rm -rf /tmp/owrt-gettext
-
-# 【关键】强删脏构建目录和旧 tarball，强制重新解压干净源码
-rm -rf ../build_dir/hostpkg/gettext-*
-rm -rf ../build_dir/hostpkg/libtextstyle-*
-rm -rf ../dl/gettext-*
-rm -rf ../dl/libtextstyle-*
-
-grep "PKG_VERSION" ../package/libs/gettext-full/Makefile
-echo ">>> gettext-full 替换完成，其他源码保持最新！"
-
 #安装和更新软件包
 UPDATE_PACKAGE() {
 	local PKG_NAME=$1
@@ -156,6 +132,7 @@ CONFIG_PACKAGE_luci-app-samba4=y
 CONFIG_PACKAGE_luci-app-zerotier=y
 CONFIG_PACKAGE_zerotier=y
 CONFIG_PACKAGE_luci-app-partexp=y
+CONFIG_PACKAGE_luci-app-diskman=y
 CONFIG_PACKAGE_luci-app-ttyd=y
 CONFIG_PACKAGE_luci-app-cpufreq=y
 
