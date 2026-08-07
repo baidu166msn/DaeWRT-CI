@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==========================================
 # 【局部修补 v3】彻底解决 gettext-full 编译失败
-# 1) 整体换成 OpenWrt 官方 CI 正在成功编译的 gettext-full（Makefile+补丁配套）
+# 1) 整体换成 OpenWrt 官方 CI 正在成功编译的 gettext-full（含 C23 修复，Makefile+补丁配套）
 # 2) 强删脏构建目录 + 旧下载缓存，消灭"混合源码"污染
 # 注意：本脚本运行时当前目录是 wrt/package，路径用 ../
 # ==========================================
@@ -111,7 +111,7 @@ fi
 
 # ==========================================
 # 【关键】DAED 启动时序 hotplug 脚本
-# 【修复】已去掉 local（hotplug 顶层执行用 local 会报错退出）
+# 【已修复】wait=0（无 local！hotplug 顶层执行用 local 会报错退出）
 # ==========================================
 mkdir -p $GITHUB_WORKSPACE/package/base-files/files/etc/hotplug.d/iface
 cat > $GITHUB_WORKSPACE/package/base-files/files/etc/hotplug.d/iface/99-daed-start <<'EOF'
@@ -157,7 +157,7 @@ CONFIG_PACKAGE_luci-app-samba4=y
 CONFIG_PACKAGE_luci-app-zerotier=y
 CONFIG_PACKAGE_zerotier=y
 CONFIG_PACKAGE_luci-app-partexp=y
-CONFIG_PACKAGE_luci-app-diskman=y
+CONFIG_PACKAGE_luci-app-diskman=n
 CONFIG_PACKAGE_luci-app-ttyd=y
 CONFIG_PACKAGE_luci-app-cpufreq=y
 
