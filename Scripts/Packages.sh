@@ -1,12 +1,40 @@
 #!/bin/bash
-
 # ==========================================
-# 【局部修补】保持全局最新，只把炸掉的 gettext-full 回退到 08.02 的稳定版
+# 【局部修补】保持全局最新，只把炸掉的 gettext-full 回退到 08.02 稳定版
+# 【修复】路径改为 ../package（当前目录是 wrt/package）
+# 【修复】先 fetch 历史 commit（解决浅克隆）
+# 【修复】清理旧编译缓存 + 验证 + 兜底
 # ==========================================
 echo ">>> 修复 gettext-full 编译报错 (局部回退到 0.24.2)..."
-# 防止 CI 浅克隆导致找不到历史 commit，先强制 fetch
-git fetch --unshallow origin 83c5ae5 2>/dev/null || git fetch origin 83c5ae5 2>/dev/null || true
-git checkout 83c5ae5 -- package/libs/gettext-full
+
+# 1. 抓取指定历史 commit（GitHub 支持按 SHA 抓取，解决浅克隆没有历史的问题）
+git fetch --depth=1 origin 83c5ae5 2>/dev/null || git fetch --unshallow origin 2>/dev/null || true
+
+# 2. 回退 gettext-full 目录（注意是 ../package，不是 package！）
+git checkout 83c5ae5 -- ../package/libs/gettext-full \
+	&& echo ">>> git 回退命令执行成功" \
+	|| echo ">>> [错误] git 回退失败！"
+
+# 3. 兜底：如果 git 回退没生效，直接下载旧版目录覆盖
+if grep -q "PKG_VERSION:=1.0" ../package/libs/gettext-full/Makefile; then
+	echo ">>> git 回退未生效，启用 tarball 兜底覆盖..."
+	rm -rf ../package/libs/gettext-full
+	curl -sL "https://codeload.github.com/VIKINGYFY/immortalwrt/tar.gz/83c5ae5" -o /tmp/owrt-old.tar.gz
+	tar -xzf /tmp/owrt-old.tar.gz -C /tmp
+	cp -r /tmp/immortalwrt-*/package/libs/gettext-full ../package/libs/gettext-full
+	rm -rf /tmp/owrt-old.tar.gz /tmp/immortalwrt-*
+fi
+
+# 4. 验证回退是否生效
+if grep -q "PKG_VERSION:=0.24" ../package/libs/gettext-full/Makefile; then
+	echo ">>> 验证通过：gettext-full 已回退到 0.24.x"
+else
+	echo ">>> [严重警告] 回退仍未生效！本次编译大概率还会失败"
+fi
+
+# 5. 清理旧编译缓存，防止 make 复用 gettext-1.0 的构建目录
+rm -rf ../build_dir/hostpkg/gettext-1.0 ../build_dir/hostpkg/gettext-full
+
 echo ">>> gettext-full 局部回退完成，其他源码保持最新！"
 
 # ==========================================
