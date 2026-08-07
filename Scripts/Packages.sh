@@ -1,12 +1,17 @@
 #!/bin/bash
+
 # ==========================================
 # 【局部修补】保持全局最新，只把炸掉的 gettext-full 回退到 08.02 的稳定版
 # ==========================================
 echo ">>> 修复 gettext-full 编译报错 (局部回退到 0.24.2)..."
-# 83c5ae5 是 08.02 成功编译时的 commit hash
+# 防止 CI 浅克隆导致找不到历史 commit，先强制 fetch
+git fetch --unshallow origin 83c5ae5 2>/dev/null || git fetch origin 83c5ae5 2>/dev/null || true
 git checkout 83c5ae5 -- package/libs/gettext-full
 echo ">>> gettext-full 局部回退完成，其他源码保持最新！"
-#安装和更新软件包
+
+# ==========================================
+# 安装和更新软件包函数
+# ==========================================
 UPDATE_PACKAGE() {
 	local PKG_NAME=$1
 	local PKG_REPO=$2
@@ -14,6 +19,7 @@ UPDATE_PACKAGE() {
 	local PKG_SPECIAL=$4
 	local PKG_LIST=("$PKG_NAME" $5)
 	local REPO_NAME=${PKG_REPO#*/}
+
 	echo " "
 	for NAME in "${PKG_LIST[@]}"; do
 		echo "Search directory: $NAME"
@@ -27,7 +33,9 @@ UPDATE_PACKAGE() {
 			echo "Not found directory: $NAME"
 		fi
 	done
+
 	git clone --depth=1 --single-branch --branch $PKG_BRANCH "https://github.com/$PKG_REPO.git"
+
 	if [[ "$PKG_SPECIAL" == "pkg" ]]; then
 		find ./$REPO_NAME/*/ -maxdepth 3 -type d -iname "*$PKG_NAME*" -prune -exec cp -rf {} ./ \;
 		rm -rf ./$REPO_NAME/
@@ -37,23 +45,15 @@ UPDATE_PACKAGE() {
 }
 
 # ==========================================
-# 主题 (只保留 argon，在 .config 中配置)
+# 主题 (只保留 argon)
 # ==========================================
 # UPDATE_PACKAGE "aurora" "eamonxg/luci-theme-aurora" "master"
-# UPDATE_PACKAGE "aurora-config" "eamonxg/luci-app-aurora-config" "master"
 # UPDATE_PACKAGE "kucat" "sirpdboy/luci-theme-kucat" "master"
-# UPDATE_PACKAGE "kucat-config" "sirpdboy/luci-app-kucat-config" "master"
 
 # ==========================================
 # 主力代理：DAED (透明代理)
 # ==========================================
 UPDATE_PACKAGE "luci-app-daed" "QiuSimons/luci-app-daed" "kix"
-
-# ==========================================
-# HomeProxy（已禁用，DAED 主力）
-# ==========================================
-# UPDATE_PACKAGE "homeproxy" "VIKINGYFY/homeproxy" "main"    ← 仓库已失效，且 GENERAL.txt 已禁用
-# sing-box 升级也不再需要
 
 # ==========================================
 # 实用工具 (精简保留)
@@ -64,31 +64,29 @@ UPDATE_PACKAGE "diskman" "lisaac/luci-app-diskman" "master"
 # ==========================================
 # 以下全部注释 (与使用场景无关 / 有冲突 / 体积过大)
 # ==========================================
-# UPDATE_PACKAGE "momo" "nikkinikki-org/OpenWrt-momo" "main"              # 与 DAED 重叠
-# UPDATE_PACKAGE "nikki" "nikkinikki-org/OpenWrt-nikki" "main"            # 与 DAED 重叠
-# UPDATE_PACKAGE "passwall" "Openwrt-Passwall/openwrt-passwall" "main" "pkg"  # 已弃用
-# UPDATE_PACKAGE "ddns-go" "sirpdboy/luci-app-ddns-go" "main"             # 按需
-# UPDATE_PACKAGE "easytier" "EasyTier/luci-app-easytier" "main"           # 已有 ZeroTier
-# UPDATE_PACKAGE "fancontrol" "rockjake/luci-app-fancontrol" "main"       # 雅典娜无风扇
-# UPDATE_PACKAGE "gecoosac" "openwrt-fork/openwrt-gecoosac" "main"        # 无集客 AP
-# UPDATE_PACKAGE "mosdns" "sbwml/luci-app-mosdns" "v5" "" "v2dat"        # DAED 自带 DNS 分流
-# UPDATE_PACKAGE "openlist2" "sbwml/luci-app-openlist2" "main"            # 不挂网盘
-# UPDATE_PACKAGE "qbittorrent" "sbwml/luci-app-qbittorrent" "master" "" "qt6base qt6tools rblibtorrent"  # Qt6 太大
-# UPDATE_PACKAGE "qmodem" "FUjr/QModem" "main"                            # 无 4G/5G 网卡
-# UPDATE_PACKAGE "quickfile" "sbwml/luci-app-quickfile" "main"            # 触发 HTTPS 问题
-# UPDATE_PACKAGE "viking" "VIKINGYFY/packages" "main" "" "luci-app-timewol luci-app-wolplus"  # 按需
-# UPDATE_PACKAGE "vnt" "lmq8267/luci-app-vnt" "main"                      # 已有 ZeroTier
-# UPDATE_PACKAGE "luci-app-pushbot" "zzsj0928/luci-app-pushbot" "master"  # 按需
-# UPDATE_PACKAGE "luci-app-lucky" "sirpdboy/luci-app-lucky" "main"        # 按需
+# UPDATE_PACKAGE "homeproxy" "VIKINGYFY/homeproxy" "main"    # 仓库失效，改用源码自带或 sbwml
+# UPDATE_PACKAGE "momo" "nikkinikki-org/OpenWrt-momo" "main"
+# UPDATE_PACKAGE "nikki" "nikkinikki-org/OpenWrt-nikki" "main"
+# UPDATE_PACKAGE "passwall" "Openwrt-Passwall/openwrt-passwall" "main" "pkg"
+# UPDATE_PACKAGE "ddns-go" "sirpdboy/luci-app-ddns-go" "main"
+# UPDATE_PACKAGE "easytier" "EasyTier/luci-app-easytier" "main"
+# UPDATE_PACKAGE "fancontrol" "rockjake/luci-app-fancontrol" "main"
+# UPDATE_PACKAGE "gecoosac" "openwrt-fork/openwrt-gecoosac" "main"
+# UPDATE_PACKAGE "mosdns" "sbwml/luci-app-mosdns" "v5" "" "v2dat"
+# UPDATE_PACKAGE "openlist2" "sbwml/luci-app-openlist2" "main"
+# UPDATE_PACKAGE "qbittorrent" "sbwml/luci-app-qbittorrent" "master" "" "qt6base qt6tools rblibtorrent"
+# UPDATE_PACKAGE "qmodem" "FUjr/QModem" "main"
+# UPDATE_PACKAGE "quickfile" "sbwml/luci-app-quickfile" "main"
+# UPDATE_PACKAGE "viking" "VIKINGYFY/packages" "main" "" "luci-app-timewol luci-app-wolplus"
+# UPDATE_PACKAGE "vnt" "lmq8267/luci-app-vnt" "main"
+# UPDATE_PACKAGE "luci-app-pushbot" "zzsj0928/luci-app-pushbot" "master"
+# UPDATE_PACKAGE "luci-app-lucky" "sirpdboy/luci-app-lucky" "main"
 
 # ==========================================
 # 删除官方冲突的默认插件
 # 【重要】不要删除 dae*，DAED 主力需要！
-# 【重要】不要删除 v2ray-geodata/v2ray-geoip/v2ray-geosite！
 # ==========================================
 rm -rf ../feeds/luci/applications/luci-app-{passwall*,mosdns,dockerman,bypass*}
-# 注意：不删 dae*（QiuSimons 仓库自带）
-# 注意：不删 v2ray-geodata（DAED 需要）
 cp -r $GITHUB_WORKSPACE/package/* ./ 2>/dev/null || true
 
 # ==========================================
@@ -106,12 +104,13 @@ fi
 # ==========================================
 # 【关键】创建 DAED 启动时序 hotplug 脚本
 # 解决"重启后 eBPF 先加载、代理隧道没就绪、DNS 全断"的问题
+# 【修复】去掉了 local 关键字，防止顶层执行报错
 # ==========================================
 mkdir -p $GITHUB_WORKSPACE/package/base-files/files/etc/hotplug.d/iface
 cat > $GITHUB_WORKSPACE/package/base-files/files/etc/hotplug.d/iface/99-daed-start <<'EOF'
 [ "$ACTION" = "ifup" ] && [ "$INTERFACE" = "wan" ] && {
     sleep 10
-    local wait=0
+    wait=0
     while [ $wait -lt 30 ]; do
         nslookup baidu.com 223.5.5.5 >/dev/null 2>&1 && break
         sleep 2
@@ -123,7 +122,7 @@ EOF
 chmod +x $GITHUB_WORKSPACE/package/base-files/files/etc/hotplug.d/iface/99-daed-start
 
 # ==========================================
-# .config 追加 (DAED + 常用插件 + 防冲突)
+# .config 追加 (DAED + sing-box + 常用插件 + 防冲突)
 # ==========================================
 cat >> ../.config <<'CONFIGEOF'
 
@@ -141,9 +140,11 @@ CONFIG_PACKAGE_luci-app-daed=y
 CONFIG_PACKAGE_daed=y
 CONFIG_PACKAGE_daed-next=y
 
-# --- HomeProxy 已禁用 ---
-# CONFIG_PACKAGE_luci-app-homeproxy is not set
+# --- HomeProxy 服务器端 (保留 sing-box) ---
 CONFIG_PACKAGE_sing-box=y
+CONFIG_PACKAGE_luci-app-homeproxy=n
+CONFIG_PACKAGE_v2ray-geodata=y
+CONFIG_PACKAGE_v2ray-geosite=y
 
 # --- 常用插件 ---
 CONFIG_PACKAGE_luci-app-upnp=y
@@ -151,7 +152,7 @@ CONFIG_PACKAGE_luci-app-samba4=y
 CONFIG_PACKAGE_luci-app-zerotier=y
 CONFIG_PACKAGE_zerotier=y
 CONFIG_PACKAGE_luci-app-partexp=y
-CONFIG_PACKAGE_luci-app-diskman=y
+CONFIG_PACKAGE_luci-app-diskman=n
 CONFIG_PACKAGE_luci-app-ttyd=y
 CONFIG_PACKAGE_luci-app-cpufreq=y
 
