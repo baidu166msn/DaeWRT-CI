@@ -1,5 +1,11 @@
 #!/bin/bash
-
+# ==========================================
+# 【局部修补】保持全局最新，只把炸掉的 gettext-full 回退到 08.02 的稳定版
+# ==========================================
+echo ">>> 修复 gettext-full 编译报错 (局部回退到 0.24.2)..."
+# 83c5ae5 是 08.02 成功编译时的 commit hash
+git checkout 83c5ae5 -- package/libs/gettext-full
+echo ">>> gettext-full 局部回退完成，其他源码保持最新！"
 #安装和更新软件包
 UPDATE_PACKAGE() {
 	local PKG_NAME=$1
