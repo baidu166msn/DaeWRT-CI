@@ -70,3 +70,12 @@ if [ -f "$RUST_FILE" ]; then
 
 	cd $PKG_PATH && echo "rust has been fixed!"
 fi
+
+#修复 gettext/gnulib 缺少 stdcountof.h 的问题
+GETTEXT_PKG=$(find . -maxdepth 3 -type d -name "gettext-full" -o -name "gettext")
+if [ -n "$GETTEXT_PKG" ]; then
+	echo " "
+	find $GETTEXT_PKG -type f -name "Makefile" -exec sed -i '/Build\/Compile/i \
+\tfind $(PKG_BUILD_DIR) -type f -name "options.h" -exec sed -i "s/#include <stdcountof.h>/#define countof(a) (sizeof(a) \\/ sizeof(*(a)))/g" {} + || true' {} +
+	cd $PKG_PATH && echo "gettext stdcountof has been patched!"
+fi
