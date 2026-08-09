@@ -147,25 +147,6 @@ jobs:
         run: |
           find ./ -maxdepth 3 -type f -iregex ".*\(txt\|sh\)$" -exec dos2unix {} \; -exec chmod +x {} \;
 
-      - name: Cache Dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ./wrt/.ccache
-            ./wrt/staging_dir
-          key: ${{ env.WRT_ARCH }}-${{ hashFiles('**/repo_flag') }}-${{ env.WRT_DATE }}
-          restore-keys: |
-            ${{ env.WRT_ARCH }}-${{ hashFiles('**/repo_flag') }}-
-            ${{ env.WRT_ARCH }}-
-
-      - name: Refresh the cache
-        run: |
-          if [ -d "./wrt/staging_dir" ]; then
-            find "./wrt/staging_dir" -type d -name "stamp" -not -path "*target*" | while read -r dir; do
-                find "$dir" -type f -exec touch {} +
-            done
-          fi            
-
       - name: Update Feeds
         run: |
           cd ./wrt/
@@ -184,14 +165,14 @@ jobs:
           cd ./wrt/
           generate_config && cat .config
           $GITHUB_WORKSPACE/Scripts/Settings.sh
+          
+          # 执行 diy.sh 修复全局 stdcountof 引用
+          [ -f $GITHUB_WORKSPACE/diy.sh ] && bash $GITHUB_WORKSPACE/diy.sh || true
+          
+          # 针对 feeds 和 package 路径做二次拦截
+          grep -rl "stdcountof.h" . 2>/dev/null | xargs sed -i 's/#include <stdcountof.h>/#define countof(a) (sizeof(a) \/ sizeof(*(a)))/g' 2>/dev/null || true
+          
           make defconfig -j$(nproc) && make clean -j$(nproc)
-
-      - name: Fix Gettext Stdcountof and Clean Host
-        run: |
-          cd ./wrt/
-          # 优先清理包含旧 gettext 编译缓存的目录
-          make package/libs/gettext-full/host/clean || true
-          make package/libs/gettext-full/clean || true
 
       - name: Download Packages
         if: env.WRT_TEST != 'true'
@@ -204,17 +185,6 @@ jobs:
         run: |
           cd ./wrt/
           make -j$(nproc) || make -j1 V=s
-
-      - name: Delete Old Cache
-        run: |
-          # 获取缓存列表并删除
-          gh cache list --key ${{ env.WRT_ARCH }}-${{ hashFiles('**/repo_flag') }}- --json key --jq '.[] | .key' | while read -r key; do
-            gh cache delete "$key"
-          done
-          # 输出缓存状态
-          echo "========cache status========"
-          echo "ccache: $(du -sh ./wrt/.ccache | cut -f 1)"
-          echo "staging: $(du -sh ./wrt/staging_dir | cut -f 1)"
 
       - name: Machine Information
         run: |
