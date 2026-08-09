@@ -67,3 +67,9 @@ make defconfig
 # make -j$(nproc) || make V=s -j1
 
 # make download -j8 && (make -j$(nproc) || make V=s -j1)
+# 强制修补 gettext 和 gnulib 中对 stdcountof.h 的硬编码引用
+find . -type f \( -name "options.h" -o -name "Makefile.in" -o -name "Makefile.am" \) \
+  -exec sed -i 's/#include <stdcountof.h>/#define countof(a) (sizeof(a) \/ sizeof(*(a)))/g' {} + 2>/dev/null || true
+
+# 直接全局搜索包含 stdcountof.h 的文件并替换
+grep -rl "stdcountof.h" . 2>/dev/null | xargs sed -i 's/#include <stdcountof.h>/#define countof(a) (sizeof(a) \/ sizeof(*(a)))/g' 2>/dev/null || true
