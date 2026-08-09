@@ -186,6 +186,13 @@ jobs:
           $GITHUB_WORKSPACE/Scripts/Settings.sh
           make defconfig -j$(nproc) && make clean -j$(nproc)
 
+      - name: Fix Gettext Stdcountof and Clean Host
+        run: |
+          cd ./wrt/
+          # 优先清理包含旧 gettext 编译缓存的目录
+          make package/libs/gettext-full/host/clean || true
+          make package/libs/gettext-full/clean || true
+
       - name: Download Packages
         if: env.WRT_TEST != 'true'
         run: |
