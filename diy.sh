@@ -80,3 +80,9 @@ make download -j$(nproc)
 
 # 7. 启动编译（多线程优先，若报错自动降为单线程输出详细日志）
 make -j$(nproc) || make V=s -j1
+# 8. 检查并给 gl-ax1800 DTS 补全 nvmem cell 标签
+DTS_FILE=$(find target/linux/qualcommax/ -name "ipq6000-gl-ax1800.dts" 2>/dev/null | head -n 1)
+if [ -f "$DTS_FILE" ]; then
+  sed -i 's/macaddr@0 {/macaddr_wan: macaddr@0 {/g' "$DTS_FILE"
+  sed -i 's/macaddr@6 {/macaddr_lan: macaddr@6 {/g' "$DTS_FILE"
+fi
