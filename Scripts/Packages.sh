@@ -44,6 +44,12 @@ UPDATE_PACKAGE "partexp" "sirpdboy/luci-app-partexp" "main"
 UPDATE_PACKAGE "diskman" "lisaac/luci-app-diskman" "master"
 
 # ==========================================
+# 主题更新：确保使用最新的 Argon 主题与配置
+# ==========================================
+UPDATE_PACKAGE "argon" "jerrykuku/luci-theme-argon" "master"
+UPDATE_PACKAGE "argon-config" "jerrykuku/luci-app-argon-config" "master"
+
+# ==========================================
 # 以下全部注释 (与场景无关 / 有冲突 / 体积过大)
 # ==========================================
 # UPDATE_PACKAGE "homeproxy" "VIKINGYFY/homeproxy" "main"
@@ -71,6 +77,12 @@ UPDATE_PACKAGE "diskman" "lisaac/luci-app-diskman" "master"
 # ==========================================
 rm -rf ../feeds/luci/applications/luci-app-{passwall*,mosdns,dockerman,bypass*}
 cp -r $GITHUB_WORKSPACE/package/* ./ 2>/dev/null || true
+
+# ==========================================
+# 修复 Argon 主题 header.ut 模块兼容性问题
+# ==========================================
+find . -type f -path "*/argon/header.ut" -exec sed -i 's/import { srand } from '\''math'\'';/\/\/ import { srand } from '\''math'\'';/g' {} +
+find ../feeds/ -type f -path "*/argon/header.ut" -exec sed -i 's/import { srand } from '\''math'\'';/\/\/ import { srand } from '\''math'\'';/g' {} + 2>/dev/null || true
 
 # ==========================================
 # 修复 luci-app-daed 相关 Makefile 和启动逻辑
