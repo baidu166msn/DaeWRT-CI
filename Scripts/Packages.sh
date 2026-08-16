@@ -42,7 +42,7 @@ UPDATE_PACKAGE "luci-app-daed" "QiuSimons/luci-app-daed" "kix"
 # ==========================================
 UPDATE_PACKAGE "partexp" "sirpdboy/luci-app-partexp" "main"
 UPDATE_PACKAGE "diskman" "lisaac/luci-app-diskman" "master"
-UPDATE_PACKAGE "quickfile" "sbwml/luci-app-quickfile" "main"
+
 # ==========================================
 # 主题更新：确保使用最新的 Argon 主题与配置
 # ==========================================
@@ -68,6 +68,7 @@ UPDATE_PACKAGE "argon-config" "jerrykuku/luci-app-argon-config" "master"
 # UPDATE_PACKAGE "vnt" "lmq8267/luci-app-vnt" "main"
 # UPDATE_PACKAGE "luci-app-pushbot" "zzsj0928/luci-app-pushbot" "master"
 # UPDATE_PACKAGE "luci-app-lucky" "sirpdboy/luci-app-lucky" "main"
+# UPDATE_PACKAGE "quickfile" "sbwml/luci-app-quickfile" "main"
 
 # ==========================================
 # 删除官方冲突的默认插件
