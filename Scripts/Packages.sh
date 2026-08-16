@@ -42,8 +42,7 @@ UPDATE_PACKAGE "luci-app-daed" "QiuSimons/luci-app-daed" "kix"
 # ==========================================
 UPDATE_PACKAGE "partexp" "sirpdboy/luci-app-partexp" "main"
 UPDATE_PACKAGE "diskman" "lisaac/luci-app-diskman" "master"
-UPDATE_PACKAGE "luci-app-quickfile-go" "home16668/luci-app-quickfile-go" "r90" "pkg"
-
+UPDATE_PACKAGE "quickfile" "sbwml/luci-app-quickfile" "main"
 # ==========================================
 # 主题更新：确保使用最新的 Argon 主题与配置
 # ==========================================
@@ -65,7 +64,6 @@ UPDATE_PACKAGE "argon-config" "jerrykuku/luci-app-argon-config" "master"
 # UPDATE_PACKAGE "openlist2" "sbwml/luci-app-openlist2" "main"
 # UPDATE_PACKAGE "qbittorrent" "sbwml/luci-app-qbittorrent" "master" "" "qt6base qt6tools rblibtorrent"
 # UPDATE_PACKAGE "qmodem" "FUjr/QModem" "main"
-# UPDATE_PACKAGE "quickfile" "sbwml/luci-app-quickfile" "main"
 # UPDATE_PACKAGE "viking" "VIKINGYFY/packages" "main" "" "luci-app-timewol luci-app-wolplus"
 # UPDATE_PACKAGE "vnt" "lmq8267/luci-app-vnt" "main"
 # UPDATE_PACKAGE "luci-app-pushbot" "zzsj0928/luci-app-pushbot" "master"
