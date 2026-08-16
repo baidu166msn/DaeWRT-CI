@@ -79,7 +79,7 @@ CONFIG_PACKAGE_cpufreq=y
 CONFIG_PACKAGE_luci-app-athena-led=y
 CONFIG_PACKAGE_luci-i18n-base-zh-cn=y
 CONFIG_PACKAGE_default-settings-chn=y
-CONFIG_PACKAGE_luci-app-quickfile=y
+# CONFIG_PACKAGE_luci-app-quickfile=y
 # ==============================================================================
 # 4. Daed 主力透明代理
 # ==============================================================================
