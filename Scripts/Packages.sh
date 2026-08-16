@@ -42,6 +42,7 @@ UPDATE_PACKAGE "luci-app-daed" "QiuSimons/luci-app-daed" "kix"
 # ==========================================
 UPDATE_PACKAGE "partexp" "sirpdboy/luci-app-partexp" "main"
 UPDATE_PACKAGE "diskman" "lisaac/luci-app-diskman" "master"
+UPDATE_PACKAGE "luci-app-quickfile-go" "home16668/luci-app-quickfile-go" "r90" "pkg"
 
 # ==========================================
 # 主题更新：确保使用最新的 Argon 主题与配置
