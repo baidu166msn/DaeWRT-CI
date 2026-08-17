@@ -172,7 +172,17 @@ jobs:
           # 针对 feeds 和 package 路径做二次拦截
           grep -rl "stdcountof.h" . 2>/dev/null | xargs sed -i 's/#include <stdcountof.h>/#define countof(a) (sizeof(a) \/ sizeof(*(a)))/g' 2>/dev/null || true
           
-          make defconfig -j$(nproc) && make clean -j$(nproc)
+          make defconfig
+          
+          # ================= 【修复 apk 报错核心逻辑】 =================
+          # 强制清理 base-files 的编译状态，防止生成镜像时读取 .version 失败导致 "base-files=" 报错
+          make package/base-files/clean
+          # 删除可能残留的旧版本号文件，确保编译时重新生成
+          rm -rf staging_dir/target-*/base-files.version 2>/dev/null || true
+          rm -rf staging_dir/target-*/libc.version 2>/dev/null || true
+          # ============================================================
+          
+          make clean
 
       - name: Download Packages
         if: env.WRT_TEST != 'true'
@@ -212,7 +222,7 @@ jobs:
               mv -f $FILE ./upload/$NEW_FILE
             done
             find ./bin/targets/ -type f -exec mv -f {} ./upload/ \;
-            make clean -j$(nproc)
+            make clean
           fi
 
       - name: Release Firmware
