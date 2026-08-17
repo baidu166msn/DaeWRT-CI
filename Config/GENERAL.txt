@@ -20,6 +20,15 @@
 # ==============================================================================
 # 【核心防冲突补丁】(必须放在最顶部)
 # ==============================================================================
+# 强制单设备 + 正确设备名 + 1G 内存
+CONFIG_TARGET_MULTI_PROFILE=n
+CONFIG_TARGET_PER_DEVICE_ROOTFS=n
+CONFIG_TARGET_DEVICE_qualcommax_ipq60xx_DEVICE_jdcloud_re-cs-02=y
+# CONFIG_TARGET_DEVICE_qualcommax_ipq60xx_DEVICE_jdcloud_athena is not set
+CONFIG_ATH11K_MEM_PROFILE_1G=y
+# CONFIG_ATH11K_MEM_PROFILE_512M is not set
+CONFIG_IPQ_MEM_PROFILE_1024=y
+# CONFIG_IPQ_MEM_PROFILE_512 is not set
 # 剔除精简版 LuCI
 # CONFIG_PACKAGE_luci-light is not set
 # 剔除基础版 wpad 和 dnsmasq，防止与 DAED 需要的 full 版冲突
