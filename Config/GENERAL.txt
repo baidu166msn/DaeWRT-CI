@@ -2,33 +2,26 @@
 # 0. 说明
 # ------------------------------------------------------------------------------
 # 本配置目标：
-# - 京东云雅典娜 IPQ60xx
+# - 京东云雅典娜 (RE-CS-02 / jdcloud_re-cs-02) IPQ60xx
 # - 修复 / 补全 WiFi：2.4G、5.2G、5.8G
 # - 保留 NSS、Daed、sing-box、Samba、USB、eMMC、IPv6、UPnP、ZeroTier 等常用功能
 #
 # 本次关键修复：
-# - 【修复】kmod-nft-fullcone 改为标准 is not set 写法（=n 写法无效，会与 NSS/DAED 冲突）
-# - 【修复】HomeProxy 的 =n 改为标准 is not set 写法
+# - 【修复】设备名统一为官方标准 jdcloud_re-cs-02
+# - 【修复】顶部强制覆盖多设备与内存配置，防止被平台配置干扰
+# - 【修复】kmod-nft-fullcone 使用标准 is not set 写法
+# - 【修复】HomeProxy 使用标准 is not set 写法
 # - 【修复】顶部增加防冲突补丁（旧 wpad/dnsmasq/firewall）
 #
 # 使用建议：
 # 1) 将本文件内容替换你的 GENERAL.txt
 # 2) 执行：make defconfig
-# 3) grep -Ei 'ath11k|ipq-wifi|qrtr|mhi|pcie-qcom|wpad|hostapd' .config 确认关键项为 y
+# 3) grep -Ei 'ath11k|ipq-wifi|qrtr|mhi|pcie-qcom|wpad|hostapd|fullcone|MEM_PROFILE|jdcloud' .config 确认关键项
 # ==============================================================================
 
 # ==============================================================================
-# 【核心防冲突补丁】(必须放在最顶部)
+# 【核心防冲突补丁 + 强制覆盖】(必须放在最顶部)
 # ==============================================================================
-# 强制单设备 + 正确设备名 + 1G 内存
-CONFIG_TARGET_MULTI_PROFILE=n
-CONFIG_TARGET_PER_DEVICE_ROOTFS=n
-CONFIG_TARGET_DEVICE_qualcommax_ipq60xx_DEVICE_jdcloud_re-cs-02=y
-# CONFIG_TARGET_DEVICE_qualcommax_ipq60xx_DEVICE_jdcloud_athena is not set
-CONFIG_ATH11K_MEM_PROFILE_1G=y
-# CONFIG_ATH11K_MEM_PROFILE_512M is not set
-CONFIG_IPQ_MEM_PROFILE_1024=y
-# CONFIG_IPQ_MEM_PROFILE_512 is not set
 # 剔除精简版 LuCI
 # CONFIG_PACKAGE_luci-light is not set
 # 剔除基础版 wpad 和 dnsmasq，防止与 DAED 需要的 full 版冲突
@@ -41,14 +34,22 @@ CONFIG_IPQ_MEM_PROFILE_1024=y
 # 【关键】禁用软件 fullcone（与 NSS 硬件加速 + DAED eBPF 双重冲突）
 # CONFIG_PACKAGE_kmod-nft-fullcone is not set
 
+# 强制单设备 + 正确设备名 + 1G 内存（覆盖平台配置）
+CONFIG_TARGET_MULTI_PROFILE=n
+CONFIG_TARGET_PER_DEVICE_ROOTFS=n
+CONFIG_TARGET_DEVICE_qualcommax_ipq60xx_DEVICE_jdcloud_re-cs-02=y
+# CONFIG_TARGET_DEVICE_qualcommax_ipq60xx_DEVICE_jdcloud_athena is not set
+
+CONFIG_ATH11K_MEM_PROFILE_1G=y
+# CONFIG_ATH11K_MEM_PROFILE_512M is not set
+CONFIG_IPQ_MEM_PROFILE_1024=y
+# CONFIG_IPQ_MEM_PROFILE_512 is not set
+
 # ==============================================================================
 # 1. 硬件目标平台设置 / 京东云雅典娜 IPQ60xx
 # ==============================================================================
 CONFIG_TARGET_qualcommax=y
 CONFIG_TARGET_qualcommax_ipq60xx=y
-CONFIG_TARGET_DEVICE_qualcommax_ipq60xx_DEVICE_jdcloud_athena=y
-CONFIG_TARGET_MULTI_PROFILE=n
-CONFIG_TARGET_PER_DEVICE_ROOTFS=n
 CONFIG_TARGET_ROOTFS_SQUASHFS=y
 CONFIG_TARGET_ROOTFS_INITRAMFS=n
 
@@ -59,8 +60,6 @@ CONFIG_DEVEL=n
 CONFIG_CCACHE=y
 CONFIG_AUTOREMOVE=y
 CONFIG_KERNEL_CC_OPTIMIZE_FOR_PERFORMANCE=y
-CONFIG_ATH11K_MEM_PROFILE_1G=y
-CONFIG_IPQ_MEM_PROFILE_1024=y
 CONFIG_LUCI_LANG_zh_Hans=y
 CONFIG_DEFAULT_tcp_bbr=y
 
@@ -89,6 +88,7 @@ CONFIG_PACKAGE_luci-app-athena-led=y
 CONFIG_PACKAGE_luci-i18n-base-zh-cn=y
 CONFIG_PACKAGE_default-settings-chn=y
 # CONFIG_PACKAGE_luci-app-quickfile=y
+
 # ==============================================================================
 # 4. Daed 主力透明代理
 # ==============================================================================
@@ -270,6 +270,7 @@ CONFIG_PACKAGE_irqbalance=y
 CONFIG_PACKAGE_jq=y
 CONFIG_PACKAGE_zoneinfo-asia=y
 CONFIG_PACKAGE_openssh-sftp-server=y
+# 跑分相关，不需要可注释
 CONFIG_PACKAGE_autocore=y
 CONFIG_PACKAGE_coremark=y
 
@@ -317,11 +318,13 @@ CONFIG_PACKAGE_kmod-rpmsg=y
 CONFIG_PACKAGE_kmod-qcom-q6v5-wcss=y
 
 # 19.5 ath11k 固件 / 板级数据
-# 说明：选中设备(DEVICE_jdcloud_athena)后，DEVICE_PACKAGES 会自动拉取对应的
-# ipq-wifi 板级数据与固件，无需手写；手写的包名若不存在会被 defconfig 自动忽略，无害。
-CONFIG_PACKAGE_ath11k-firmware-ipq60xx=y
-CONFIG_PACKAGE_ath11k-firmware-qcn5052=y
-# CONFIG_PACKAGE_ipq-wifi-jdcloud_athena=y
+# 说明：选中设备(jdcloud_re-cs-02)后，DEVICE_PACKAGES 会自动拉取对应的
+# ipq-wifi 板级数据与固件。手写不存在的包名会被 defconfig 忽略，无害。
+CONFIG_PACKAGE_ath11k-firmware-ipq6018=y
+# CONFIG_PACKAGE_ath11k-firmware-ipq60xx is not set
+# CONFIG_PACKAGE_ath11k-firmware-qcn5052 is not set
+# 如编译后 WiFi 仍缺板级数据，可尝试取消下面注释：
+# CONFIG_PACKAGE_ipq-wifi-jdcloud_re-cs-02=y
 
 # 19.6 WiFi 加密 / 随机数 / 基础算法依赖
 CONFIG_PACKAGE_kmod-random-core=y
@@ -353,6 +356,9 @@ CONFIG_PACKAGE_kmod-crypto-lib-poly1305=y
 # 20. 编译后建议检查项
 # ==============================================================================
 # make defconfig 后执行：
-#   grep -Ei 'ath11k|ipq-wifi|qrtr|mhi|pcie-qcom|wpad|hostapd|fullcone' .config
-# 重点确认：kmod-ath11k / ath11k-ahb / ath11k-pci / wpad-openssl 为 y
-# 重点确认：kmod-nft-fullcone 为 is not set
+#   grep -Ei 'ath11k|ipq-wifi|qrtr|mhi|pcie-qcom|wpad|hostapd|fullcone|MEM_PROFILE|jdcloud' .config
+# 重点确认：
+#   - DEVICE_jdcloud_re-cs-02 =y
+#   - ATH11K_MEM_PROFILE_1G =y / IPQ_MEM_PROFILE_1024 =y
+#   - kmod-ath11k / ath11k-ahb / ath11k-pci / wpad-openssl =y
+#   - kmod-nft-fullcone 为 is not set
