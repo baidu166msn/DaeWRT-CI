@@ -382,19 +382,18 @@ CONFIG_PACKAGE_kmod-qcom-q6v5-wcss=y
 # 21. ath11k 无线固件 / 京东云雅典娜 RE-CS-02
 # ==============================================================================
 
-# IPQ6018 SoC 内置无线固件
-CONFIG_PACKAGE_ath11k-firmware-ipq6018=y
+# 雅典娜 IPQ6018 无线固件
+CONFIG_PACKAGE_ath11k-firmware-ipq6018-ddwrt=y
 
-# QCN9074 PCIe 无线芯片固件
-CONFIG_PACKAGE_ath11k-firmware-qcn9074=y
+# 雅典娜 QCN9074 PCIe 无线固件
+CONFIG_PACKAGE_ath11k-firmware-qcn9074-ddwrt=y
 
-# 京东云雅典娜 RE-CS-02 专用无线板级数据
-# 包含 IPQ6018 / QCN9074 对应的 board-2.bin
+# 雅典娜 RE-CS-02 专用无线板级数据
 CONFIG_PACKAGE_ipq-wifi-jdcloud_re-cs-02=y
 
-# 禁用 DD-WRT 固件，统一使用标准 ath11k 固件
-# CONFIG_PACKAGE_ath11k-firmware-ipq6018-ddwrt is not set
-# CONFIG_PACKAGE_ath11k-firmware-qcn9074-ddwrt is not set
+# 禁用无效或不使用的固件选择
+# CONFIG_PACKAGE_ath11k-firmware-ipq6018 is not set
+# CONFIG_PACKAGE_ath11k-firmware-qcn9074 is not set
 # CONFIG_PACKAGE_ath11k-firmware-ipq60xx is not set
 # CONFIG_PACKAGE_ath11k-firmware-qcn5052 is not set
 
