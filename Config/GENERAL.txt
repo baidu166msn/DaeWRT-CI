@@ -1,4 +1,10 @@
 # ==============================================================================
+# GENERAL.txt (通用配置 - 适用于所有平台)
+# ------------------------------------------------------------------------------
+# 注意：本文件绝对不能包含 CONFIG_TARGET_ 或 CONFIG_TARGET_DEVICE_ 等硬件强相关配置！
+# ==============================================================================
+
+# ==============================================================================
 # 0. 核心防冲突补丁
 # ==============================================================================
 # CONFIG_PACKAGE_luci-light is not set
@@ -24,13 +30,14 @@ CONFIG_LUCI_LANG_zh_Hans=y
 # 2. LuCI / 主题 / 中文
 # ==============================================================================
 CONFIG_PACKAGE_luci=y
+# 【修复】将 luci-ssl-openssl 改为 luci-ssl，解决上游删除 px5g-openssl 导致的依赖断裂
 CONFIG_PACKAGE_luci-ssl=y
 CONFIG_PACKAGE_luci-base=y
 CONFIG_PACKAGE_luci-compat=y
 CONFIG_PACKAGE_luci-lib-base=y
 CONFIG_PACKAGE_luci-lib-ipkg=y
 CONFIG_PACKAGE_luci-theme-argon=y
-# CONFIG_PACKAGE_luci-app-argon-config is not set
+CONFIG_PACKAGE_luci-app-argon-config=y
 CONFIG_PACKAGE_luci-app-firewall4=y
 CONFIG_PACKAGE_luci-app-opkg=y
 CONFIG_PACKAGE_luci-app-fstab=y
@@ -55,7 +62,6 @@ CONFIG_PACKAGE_dnsmasq-full=y
 CONFIG_PACKAGE_sing-box=y
 # CONFIG_PACKAGE_luci-app-homeproxy is not set
 # CONFIG_PACKAGE_homeproxy is not set
-CONFIG_PACKAGE_v2ray-geodata-updater=y
 CONFIG_PACKAGE_firewall4=y
 CONFIG_PACKAGE_nftables=y
 CONFIG_PACKAGE_nftables-json=y
