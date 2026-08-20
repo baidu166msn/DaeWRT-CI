@@ -1,11 +1,28 @@
 #CMIOT GLINET LINKSYS QIHOO REDMI XIAOMI ZN JDCLOUD
+# ==============================================================================
+# 目标平台
+# ==============================================================================
 CONFIG_TARGET_qualcommax=y
 CONFIG_TARGET_qualcommax_ipq60xx=y
+
+# 【终极修复】必须开启 MULTI_PROFILE，否则 qualcommax 的 Kconfig 会强制回退到默认开发板 (8devices_mango-dvk)！
 CONFIG_TARGET_MULTI_PROFILE=y
 CONFIG_TARGET_PER_DEVICE_ROOTFS=y
-#设备列表
+
+# ==============================================================================
+# 设备列表 (只保留雅典娜)
+# ==============================================================================
 CONFIG_TARGET_DEVICE_qualcommax_ipq60xx_DEVICE_jdcloud_re-cs-02=y
-#内核配置
+
+# ==============================================================================
+# Rootfs
+# ==============================================================================
+CONFIG_TARGET_ROOTFS_SQUASHFS=y
+# CONFIG_TARGET_ROOTFS_INITRAMFS is not set
+
+# ==============================================================================
+# 内核配置
+# ==============================================================================
 CONFIG_KERNEL_ARM_PMU=y
 CONFIG_KERNEL_CFQ_GROUP_IOSCHED=y
 CONFIG_KERNEL_CGROUP_DEVICE=y
@@ -20,13 +37,17 @@ CONFIG_KERNEL_NET_CLS_CGROUP=y
 CONFIG_KERNEL_PERF_EVENTS=y
 # CONFIG_KERNEL_PREEMPT_RCU is not set
 
-#NSS配置
-CONFIG_FEED_nss_packages=n
-CONFIG_FEED_sqm_scripts_nss=n
-CONFIG_IPQ_MEM_PROFILE_1024=n
-CONFIG_IPQ_MEM_PROFILE_512=y
-CONFIG_ATH11K_MEM_PROFILE_1G=n
-CONFIG_ATH11K_MEM_PROFILE_512M=y
+# ==============================================================================
+# NSS 基础配置 (针对 1GB RAM 的雅典娜 RE-CS-02)
+# ==============================================================================
+# CONFIG_FEED_nss_packages is not set
+# CONFIG_FEED_sqm_scripts_nss is not set
+
+CONFIG_IPQ_MEM_PROFILE_1024=y
+# CONFIG_IPQ_MEM_PROFILE_512 is not set
+
+CONFIG_ATH11K_MEM_PROFILE_1G=y
+# CONFIG_ATH11K_MEM_PROFILE_512M is not set
 
 CONFIG_PACKAGE_sqm-scripts-nss=y
 CONFIG_PACKAGE_kmod-qca-nss-crypto=y
