@@ -21,8 +21,8 @@ UPDATE_PACKAGE() {
 # 1. 主力透明代理 DAED
 UPDATE_PACKAGE "luci-app-daed" "QiuSimons/luci-app-daed" "kix"
 
-# 2. 清理冲突插件
-rm -rf ../feeds/luci/applications/luci-app-{passwall*,mosdns,dockerman,bypass*}
+# 2. 清理冲突插件 (【修复】增加容错，防止 set -e 因找不到文件而崩溃)
+rm -rf ../feeds/luci/applications/luci-app-{passwall*,mosdns,dockerman,bypass*} 2>/dev/null || true
 find ../package/feeds -maxdepth 4 -name 'luci-app-passwall*' -exec rm -rf {} + 2>/dev/null || true
 
 # 3. 修复 DAED 编译
@@ -57,3 +57,17 @@ chmod +x "$HOTPLUG_DIR/99-daed-start"
 if [ -d "$GITHUB_WORKSPACE/package" ]; then
   cp -r "$GITHUB_WORKSPACE/package/." ./ 2>/dev/null || true
 fi
+
+# ==============================================================================
+# 6. 预置增强版 geodata（Loyalsoldier 增强规则，开箱即用）
+# ==============================================================================
+GEO_DIR="$GITHUB_WORKSPACE/wrt/files/usr/share/v2ray"
+mkdir -p "$GEO_DIR"
+echo "Downloading enhanced geoip.dat and geosite.dat..."
+curl -fsSL --retry 3 -o "$GEO_DIR/geoip.dat" \
+  "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat" \
+  || echo "WARN: geoip.dat download failed!"
+curl -fsSL --retry 3 -o "$GEO_DIR/geosite.dat" \
+  "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat" \
+  || echo "WARN: geosite.dat download failed!"
+ls -lh "$GEO_DIR" || true
