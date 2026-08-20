@@ -1,147 +1,130 @@
-#云编译公用核心
 name: WRT-CORE
 
 on:
   workflow_call:
     inputs:
-      WRT_CONFIG:
-        required: true
-        type: string
-      WRT_THEME:
-        required: true
-        type: string
-      WRT_NAME:
-        required: true
-        type: string
-      WRT_SSID:
-        required: true
-        type: string
-      WRT_WORD:
-        required: true
-        type: string
-      WRT_IP:
-        required: true
-        type: string
-      WRT_PW:
-        required: true
-        type: string
-      WRT_REPO:
-        required: true
-        type: string
-      WRT_BRANCH:
-        required: true
-        type: string
-      WRT_SOURCE:
-        required: false
-        type: string
-      WRT_PACKAGE:
-        required: false
-        type: string
-      WRT_TEST:
-        required: false
-        type: string
-      CI_NAME:
-        required: false
-        type: string
-      WRT_ARCH:
-        required: false
-        type: string
+      WRT_CONFIG: {required: true, type: string}
+      WRT_THEME: {required: true, type: string}
+      WRT_NAME: {required: true, type: string}
+      WRT_SSID: {required: true, type: string}
+      WRT_WORD: {required: true, type: string}
+      WRT_IP: {required: true, type: string}
+      WRT_PW: {required: true, type: string}
+      WRT_REPO: {required: true, type: string}
+      WRT_BRANCH: {required: true, type: string}
+      WRT_SOURCE: {required: false, type: string}
+      WRT_PACKAGE: {required: false, type: string}
+      WRT_TEST: {required: false, type: string}
+      CI_NAME: {required: false, type: string}
+      WRT_ARCH: {required: false, type: string}
 
 env:
-  GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-  WRT_CONFIG: ${{inputs.WRT_CONFIG}}
-  WRT_THEME: ${{inputs.WRT_THEME}}
-  WRT_NAME: ${{inputs.WRT_NAME}}
-  WRT_SSID: ${{inputs.WRT_SSID}}
-  WRT_WORD: ${{inputs.WRT_WORD}}
-  WRT_IP: ${{inputs.WRT_IP}}
-  WRT_PW: ${{inputs.WRT_PW}}
-  WRT_REPO: ${{inputs.WRT_REPO}}
-  WRT_BRANCH: ${{inputs.WRT_BRANCH}}
-  WRT_PACKAGE: ${{inputs.WRT_PACKAGE}}
-  WRT_TEST: ${{inputs.WRT_TEST}}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  WRT_CONFIG: ${{ inputs.WRT_CONFIG }}
+  WRT_THEME: ${{ inputs.WRT_THEME }}
+  WRT_NAME: ${{ inputs.WRT_NAME }}
+  WRT_SSID: ${{ inputs.WRT_SSID }}
+  WRT_WORD: ${{ inputs.WRT_WORD }}
+  WRT_IP: ${{ inputs.WRT_IP }}
+  WRT_PW: ${{ inputs.WRT_PW }}
+  WRT_REPO: ${{ inputs.WRT_REPO }}
+  WRT_BRANCH: ${{ inputs.WRT_BRANCH }}
+  WRT_SOURCE: ${{ inputs.WRT_SOURCE }}
+  WRT_PACKAGE: ${{ inputs.WRT_PACKAGE }}
+  WRT_TEST: ${{ inputs.WRT_TEST }}
   WRT_DIR: 'wrt'
-  CI_NAME: ${{inputs.CI_NAME}}
-  WRT_ARCH: ${{inputs.WRT_ARCH}}
+  CI_NAME: ${{ inputs.CI_NAME }}
+  WRT_ARCH: ${{ inputs.WRT_ARCH }}
+  CLANG: clang
+  LLVM_STRIP: llvm-strip
 
 jobs:
   core:
-    name: ${{inputs.WRT_SOURCE}}
+    name: ${{ inputs.WRT_SOURCE }}
     runs-on: ubuntu-24.04
+
     steps:
-      - name: Install BC
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: |
-          sudo -E apt -yqq install bc
-
-      - name: Free Disk Space
-        uses: endersonmenezes/free-disk-space@v2
-        with:
-          remove_android: true
-          remove_dotnet: true
-          remove_haskell: true
-          remove_tool_cache: true
-          remove_swap: true
-          remove_packages: "azure-cli google-cloud-cli microsoft-edge-stable google-chrome-stable firefox postgresql* temurin-* *llvm* mysql* dotnet-sdk-*"
-          remove_packages_one_command: true
-          remove_folders: "/usr/share/swift /usr/share/miniconda /usr/share/az* /usr/share/glade* /usr/local/share/chromium /usr/local/share/powershell"
-          testing: false
-
       - name: Checkout Projects
-        uses: actions/checkout@main
+        uses: actions/checkout@v4
 
-      - name: Initialization Environment
+      - name: Free Disk Space & Install Dependencies
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          sudo -E apt -yqq purge firefox
-          sudo -E apt -yqq update
-          sudo -E apt -yqq full-upgrade
-          sudo -E apt -yqq autoremove --purge
-          sudo -E apt -yqq autoclean
-          sudo -E apt -yqq clean
-          sudo -E apt -yqq install dos2unix libfuse-dev
-          sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_environment.sh)'
-          sudo -E systemctl daemon-reload
-          sudo -E timedatectl set-timezone "Asia/Shanghai"
-          if command -v go >/dev/null 2>&1; then
-            echo "GO_INSTALLED=true" >> "$GITHUB_ENV"
-          else
-            echo "GO_INSTALLED=false" >> "$GITHUB_ENV"
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/chromium /usr/local/lib/android /opt/hostedtoolcache/CodeQL
+          sudo apt-get update -qq
+          
+          # 基础依赖（不含 llvm 元包，避免虚拟包/空包问题）
+          sudo apt-get install -y build-essential flex bison g++ gawk gcc-multilib g++-multilib gettext git libncurses-dev libssl-dev python3-setuptools rsync swig unzip zlib1g-dev file wget qemu-utils libelf-dev bc dos2unix libfuse-dev dwarves libbpf-dev
+          
+          # 【核心修复】显式安装版本化 clang-18/llvm-18（llvm-strip-18 随 llvm-18 提供）
+          sudo apt-get install -y clang-18 llvm-18 || sudo apt-get install -y clang llvm
+          
+          # 多层探测 clang
+          CLANG_BIN=$(ls /usr/bin/clang-[0-9]* 2>/dev/null | sort -V | tail -n 1)
+          [ -z "$CLANG_BIN" ] && CLANG_BIN=$(ls /usr/lib/llvm-*/bin/clang 2>/dev/null | head -n 1)
+          [ -z "$CLANG_BIN" ] && CLANG_BIN=$(which clang 2>/dev/null)
+          
+          # 多层探测 llvm-strip：/usr/bin -> dpkg 查询 -> llvm 目录
+          STRIP_BIN=$(ls /usr/bin/llvm-strip-[0-9]* 2>/dev/null | sort -V | tail -n 1)
+          [ -z "$STRIP_BIN" ] && STRIP_BIN=$(dpkg -L llvm-18 2>/dev/null | grep -E '/llvm-strip(-[0-9]+)?$' | head -n 1)
+          [ -z "$STRIP_BIN" ] && STRIP_BIN=$(ls /usr/lib/llvm-*/bin/llvm-strip 2>/dev/null | head -n 1)
+          
+          # 终极兜底：用 llvm-objcopy 生成 llvm-strip 包装器
+          if [ -z "$STRIP_BIN" ]; then
+            OBJCOPY_BIN=$(ls /usr/bin/llvm-objcopy-[0-9]* 2>/dev/null | sort -V | tail -n 1)
+            [ -z "$OBJCOPY_BIN" ] && OBJCOPY_BIN=$(ls /usr/lib/llvm-*/bin/llvm-objcopy 2>/dev/null | head -n 1)
+            if [ -n "$OBJCOPY_BIN" ]; then
+              printf '#!/bin/sh\nexec "%s" --strip-all "$@"\n' "$OBJCOPY_BIN" | sudo tee /usr/bin/llvm-strip >/dev/null
+              sudo chmod +x /usr/bin/llvm-strip
+              STRIP_BIN=/usr/bin/llvm-strip
+            fi
           fi
-          sudo chown $USER:$GROUPS $GITHUB_WORKSPACE
-          sudo mkdir -p /mnt/build_wrt
-          sudo chown $USER:$USER /mnt/build_wrt
-          sudo ln -s /mnt/build_wrt $GITHUB_WORKSPACE/wrt
+          
+          if [ -n "$CLANG_BIN" ]; then
+            echo "Found clang: $CLANG_BIN"
+            sudo ln -sf "$CLANG_BIN" /usr/bin/clang
+          else
+            echo "ERROR: clang not found!" && exit 1
+          fi
+          
+          if [ -n "$STRIP_BIN" ]; then
+            echo "Found llvm-strip: $STRIP_BIN"
+            sudo ln -sf "$STRIP_BIN" /usr/bin/llvm-strip
+          else
+            echo "ERROR: llvm-strip not found!" && exit 1
+          fi
+          
+          echo "Verifying with 'which' command:"
+          which clang || (echo "which clang failed!" && exit 1)
+          which llvm-strip || (echo "which llvm-strip failed!" && exit 1)
+          llvm-strip --version || true
+          
+          sudo timedatectl set-timezone "Asia/Shanghai"
 
       - name: Setup Go
-        if: env.GO_INSTALLED != 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: 'stable'
-
-      - run: go version
+          go-version: '1.22.x'
 
       - name: Initialization Values
         run: |
-          echo "WRT_DATE=$(TZ=UTC-8 date +"%y.%m.%d-%H.%M.%S")" >> $GITHUB_ENV
-          echo "WRT_MARK=${GITHUB_REPOSITORY%%/*}" >> $GITHUB_ENV
-          echo "WRT_INFO=${WRT_SOURCE%%/*}" >> $GITHUB_ENV
-          echo "WRT_TARGET=$(grep -m 1 -oP '^CONFIG_TARGET_\K[\w]+(?=\=y)' ./Config/$WRT_CONFIG.txt)" >> $GITHUB_ENV
-          echo "WRT_KVER=none" >> $GITHUB_ENV
-          echo "WRT_LIST=none" >> $GITHUB_ENV
-          echo "WRT_CI=$WRT_CI" >> $GITHUB_ENV
-          [[ -z $WRT_ARCH ]] && {
-            export WRT_ARCH=$(sed -n 's/.*_DEVICE_\(.*\)_DEVICE_.*/\1/p' $GITHUB_WORKSPACE/Config/$WRT_CONFIG.txt | head -n 1)
-            echo "WRT_ARCH=$WRT_ARCH" >> $GITHUB_ENV
-          }
-          echo "$WRT_REPO/$WRT_BRANCH" > "$GITHUB_WORKSPACE/repo_flag"
+          echo "WRT_DATE=$(TZ=Asia/Shanghai date +"%y.%m.%d-%H.%M.%S")" >> "$GITHUB_ENV"
+          echo "WRT_MARK=${GITHUB_REPOSITORY%%/*}" >> "$GITHUB_ENV"
+          echo "WRT_INFO=${WRT_SOURCE%%/*}" >> "$GITHUB_ENV"
+          echo "WRT_TARGET=$(grep -m 1 -oP '^CONFIG_TARGET_\K[\w]+(?==y)' ./Config/$WRT_CONFIG.txt)" >> "$GITHUB_ENV"
+          echo "WRT_KVER=none" >> "$GITHUB_ENV"
+          echo "WRT_LIST=none" >> "$GITHUB_ENV"
+          
+          if [ -z "$WRT_ARCH" ]; then
+            export WRT_ARCH=$(sed -n 's/^CONFIG_TARGET_DEVICE_.*_DEVICE_\([^=]*\)=y/\1/p' "$GITHUB_WORKSPACE/Config/$WRT_CONFIG.txt" | head -n 1)
+            echo "WRT_ARCH=$WRT_ARCH" >> "$GITHUB_ENV"
+          fi
 
       - name: Clone Code
         run: |
-          git clone --depth=1 --single-branch --branch $WRT_BRANCH $WRT_REPO ./wrt/
-          cd ./wrt/ && echo "WRT_HASH=$(git log -1 --pretty=format:'%h')" >> $GITHUB_ENV
+          git clone --depth=1 --single-branch --branch "$WRT_BRANCH" "$WRT_REPO" ./wrt/
+          cd ./wrt/ && echo "WRT_HASH=$(git log -1 --pretty=format:'%h')" >> "$GITHUB_ENV"
 
       - name: Check Scripts
         run: |
@@ -156,85 +139,67 @@ jobs:
       - name: Custom Packages
         run: |
           cd ./wrt/package/
-          $GITHUB_WORKSPACE/Scripts/Packages.sh
-          $GITHUB_WORKSPACE/Scripts/Handles.sh
+          "$GITHUB_WORKSPACE/Scripts/Packages.sh"
+          "$GITHUB_WORKSPACE/Scripts/Handles.sh"
 
       - name: Custom Settings
         run: |
-          . $GITHUB_WORKSPACE/Scripts/function.sh
+          . "$GITHUB_WORKSPACE/Scripts/function.sh"
           cd ./wrt/
-          generate_config && cat .config
-          $GITHUB_WORKSPACE/Scripts/Settings.sh
           
-          # 执行 diy.sh 修复全局 stdcountof 引用
-          [ -f $GITHUB_WORKSPACE/diy.sh ] && bash $GITHUB_WORKSPACE/diy.sh || true
+          generate_config
+          "$GITHUB_WORKSPACE/Scripts/Settings.sh"
           
-          # 针对 feeds 和 package 路径做二次拦截
-          grep -rl "stdcountof.h" . 2>/dev/null | xargs sed -i 's/#include <stdcountof.h>/#define countof(a) (sizeof(a) \/ sizeof(*(a)))/g' 2>/dev/null || true
-          
+          grep -rl "stdcountof.h" . 2>/dev/null | xargs -r sed -i 's|#include <stdcountof\.h>|#define countof(a) (sizeof(a) / sizeof(*(a)))|g' 2>/dev/null || true
           make defconfig
           
-          # ================= 【修复 apk 报错核心逻辑】 =================
-          # 强制清理 base-files 的编译状态，防止生成镜像时读取 .version 失败导致 "base-files=" 报错
-          make package/base-files/clean
-          # 删除可能残留的旧版本号文件，确保编译时重新生成
-          rm -rf staging_dir/target-*/base-files.version 2>/dev/null || true
-          rm -rf staging_dir/target-*/libc.version 2>/dev/null || true
-          # ============================================================
-          
-          make clean
+          echo "==================== final .config ===================="
+          grep -Ei 'ath11k|ipq-wifi|wpad|dnsmasq|fullcone|qca-nss|daed' .config || true
 
       - name: Download Packages
         if: env.WRT_TEST != 'true'
         run: |
           cd ./wrt/
-          make download -j$(nproc)
+          make download -j8 || make download -j1 V=s
 
       - name: Compile Firmware
         if: env.WRT_TEST != 'true'
         run: |
           cd ./wrt/
-          make -j$(nproc) || make -j1 V=s
-
-      - name: Machine Information
-        run: |
-          cd ./wrt/
-          echo "======================="
-          lscpu | grep -E "name|Core|Thread"
-          echo "======================="
-          df -h
-          echo "======================="
-          du -h --max-depth=1
-          echo "======================="
+          make -j$(($(nproc)+1)) || make -j1 V=s
 
       - name: Package Firmware
         run: |
-          cd ./wrt/ && mkdir ./upload/
-          cp -f ./.config ./upload/Config-"$WRT_CONFIG"-"$WRT_INFO"-"$WRT_BRANCH"-"$WRT_DATE".txt
-          if [[ $WRT_TEST != 'true' ]]; then
-            echo "WRT_KVER=$(find ./bin/targets/ -type f -name "*.manifest" -exec grep -oP '^kernel - \K[\d\.]+' {} \;)" >> $GITHUB_ENV
-            echo "WRT_LIST=$(find ./bin/targets/ -type f -name "*.manifest" -exec grep -oP '^luci-(app|theme)[^ ]*' {} \; | tr '\n' ' ')" >> $GITHUB_ENV
+          cd ./wrt/ && mkdir -p ./upload/
+          cp -f ./.config "./upload/Config-$WRT_CONFIG-$WRT_INFO-$WRT_BRANCH-$WRT_DATE.txt"
+          
+          if [[ "$WRT_TEST" != 'true' ]]; then
+            echo "WRT_KVER=$(find ./bin/targets/ -type f -name '*.manifest' -exec grep -oP '^kernel - \K[\d\.]+' {} \;)" >> "$GITHUB_ENV"
+            echo "WRT_LIST=$(find ./bin/targets/ -type f -name '*.manifest' -exec grep -oP '^luci-(app|theme)[^ ]*' {} \; | tr '\n' ' ')" >> "$GITHUB_ENV"
+            
             find ./bin/targets/ -iregex ".*\(buildinfo\|json\|sha256sums\|packages\)$" -exec rm -rf {} +
+            
             for FILE in $(find ./bin/targets/ -type f -iname "*$WRT_TARGET*") ; do
-              EXT=$(basename $FILE | cut -d '.' -f 2-)
-              NAME=$(basename $FILE | cut -d '.' -f 1 | grep -io "\($WRT_TARGET\).*")
-              NEW_FILE="$NAME"-"$WRT_DATE"."$EXT"
-              mv -f $FILE ./upload/$NEW_FILE
+              EXT=$(basename "$FILE" | cut -d '.' -f 2-)
+              NAME=$(basename "$FILE" | cut -d '.' -f 1 | grep -io "\($WRT_TARGET\).*" || basename "$FILE" | cut -d '.' -f 1)
+              NEW_FILE="$NAME-$WRT_DATE.$EXT"
+              mv -f "$FILE" "./upload/$NEW_FILE"
             done
+            
             find ./bin/targets/ -type f -exec mv -f {} ./upload/ \;
-            make clean
           fi
 
       - name: Release Firmware
-        uses: softprops/action-gh-release@master
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{env.CI_NAME}}-${{env.WRT_CONFIG}}_${{env.WRT_DATE}}
+          tag_name: ${{ env.CI_NAME }}-${{ env.WRT_CONFIG }}_${{ env.WRT_INFO }}_${{ env.WRT_DATE }}
           files: ./wrt/upload/*.*
-          body: 
-            源码：${{env.WRT_REPO}}
-            分支：${{env.WRT_BRANCH}}
-            提交：${{env.WRT_HASH}}
-            配置：${{env.WRT_CONFIG}}
-            平台：${{env.WRT_TARGET}}
-            内核版本：${{env.WRT_KVER}}
-            插件列表：${{env.WRT_LIST}}
+          body: |
+            源码：${{ env.WRT_REPO }}
+            分支：${{ env.WRT_BRANCH }}
+            提交：${{ env.WRT_HASH }}
+            配置：${{ env.WRT_CONFIG }}
+            平台：${{ env.WRT_TARGET }}
+            设备：${{ env.WRT_ARCH }}
+            内核版本：${{ env.WRT_KVER }}
+            插件列表：${{ env.WRT_LIST }}
